@@ -1,0 +1,33 @@
+---
+- name: Setup snapshot
+  hosts: all
+  become: true
+  vars:
+    snapshot_all: true
+    space_avail_percent: 20
+
+  tasks:
+    - name: Include the role to ensure packages are installed
+      include_role:
+        name: linux-system-roles.snapshot
+        tasks_from: set_vars.yml
+        public: true
+
+    - name: Install test packages
+      package:
+        name: "{{ __snapshot_packages }}"
+        state: present
+
+    - name: Verify that there is enough storage space
+      script: snapshot.py check -r 20 -p a__ -s __z
+      args:
+        executable: "{{ ansible_python.executable }}"
+      register: lvm_snapshots_check_status
+      failed_when: false
+
+    - name: Snapshot all VGs
+      script: snapshot.py snapshot -r 20 -p a__ -s __z
+      args:
+        executable: "{{ ansible_python.executable }}"
+      register: lvm_snapshots_check_status
+      failed_when: false

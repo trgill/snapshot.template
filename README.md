@@ -1,4 +1,4 @@
-# Role Name
+# Snapshot
 
 [![ansible-lint.yml](https://github.com/linux-system-roles/template/actions/workflows/ansible-lint.yml/badge.svg)](https://github.com/linux-system-roles/template/actions/workflows/ansible-lint.yml) [![ansible-test.yml](https://github.com/linux-system-roles/template/actions/workflows/ansible-test.yml/badge.svg)](https://github.com/linux-system-roles/template/actions/workflows/ansible-test.yml) [![markdownlint.yml](https://github.com/linux-system-roles/template/actions/workflows/markdownlint.yml/badge.svg)](https://github.com/linux-system-roles/template/actions/workflows/markdownlint.yml) [![shellcheck.yml](https://github.com/linux-system-roles/template/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/linux-system-roles/template/actions/workflows/shellcheck.yml) [![woke.yml](https://github.com/linux-system-roles/template/actions/workflows/woke.yml/badge.svg)](https://github.com/linux-system-roles/template/actions/workflows/woke.yml)
 
@@ -9,11 +9,7 @@ service. A brief description of the role goes here.
 
 ## Requirements
 
-Any prerequisites that may not be covered by Ansible itself or the role should
-be mentioned here.  This includes platform dependencies not managed by the
-role, hardware requirements, external collections, etc.  There should be a
-distinction between *control node* requirements (like collections) and
-*managed node* requirements (like special hardware, platform provisioning).
+
 
 ### Collection requirements
 
@@ -52,8 +48,8 @@ the lifetime.
 Example of setting the variables:
 
 ```yaml
-template_foo: "oof"
-template_bar: false
+snapshot_suffix_string: "__snap_10_11_23"
+snapshot_all: false
 ```
 
 ## Variables Exported by the Role
@@ -62,12 +58,12 @@ This section is optional.  Some roles may export variables for playbooks to
 use later.  These are analogous to "return values" in Ansible modules.  For
 example, if a role performs some action that will require a system reboot, but
 the user wants to defer the reboot, the role might set a variable like
-`template_reboot_needed: true` that the playbook can use to reboot at a more
+`snapshot_reboot_needed: true` that the playbook can use to reboot at a more
 convenient time.
 
 Example:
 
-### template_reboot_needed
+### snapshot_reboot_needed
 
 Default `false` - if `true`, this means a reboot is needed to apply the changes
 made by the role
@@ -78,13 +74,13 @@ Including an example of how to use your role (for instance, with variables
 passed in as parameters) is always nice for users too:
 
 ```yaml
-- name: Manage the template subsystem
+- name: Manage the snapshot subsystem
   hosts: all
   vars:
     template_foo: "foo foo!"
     template_bar: false
   roles:
-    - linux-system-roles.template
+    - linux-system-roles.snapshot
 ```
 
 More examples can be provided in the [`examples/`](examples) directory. These

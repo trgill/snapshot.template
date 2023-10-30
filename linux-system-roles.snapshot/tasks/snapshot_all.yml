@@ -1,0 +1,7 @@
+- name: Snapshot All VGs
+  ansible.builtin.script: snapshot.py snapshot -a -r 20 -p a__ -s __z
+  args:
+    executable: "{{ ansible_python.executable }}"
+  register: lvm_snapshots_snapshot_all
+  failed_when: false
+  changed_when: false

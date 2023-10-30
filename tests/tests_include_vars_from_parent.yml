@@ -43,4 +43,4 @@
       import_role:
         name: caller
       vars:
-        roletoinclude: linux-system-roles.template
+        roletoinclude: linux-system-roles.snapshot

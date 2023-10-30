@@ -1,0 +1,7 @@
+- name: Cleanup Any Snapshots that conform to naming conventions
+  ansible.builtin.script: snapshot.py clean -vg vg1 -p a__ -s z__
+  args:
+    executable: "{{ ansible_python.executable }}"
+  register: lvm_snapshots_check_space
+  failed_when: false
+  changed_when: false

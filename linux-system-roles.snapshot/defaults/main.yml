@@ -1,0 +1,3 @@
+snapshots_volumes: []
+snapshots_use_boom: true
+snapshots_boot_backup: true
