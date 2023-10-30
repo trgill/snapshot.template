@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import argparse
 import json
 import logging
@@ -245,7 +245,7 @@ def check_name_for_snapshot(vg_name, lv_name, prefix, suffix):
     else:
         return SnapshotStatus.SNAPSHOT_OK
 
-def snapshot_lvs(required_space_available_percent, vg_name, lv_name, prefix, suffix, check_only):
+def snapshot_lvs(required_space, vg_name, lv_name, prefix, suffix, check_only):
     lvm_json = lvm_full_report_json()
     report = lvm_json["report"]
     vg_found = False
@@ -267,7 +267,7 @@ def snapshot_lvs(required_space_available_percent, vg_name, lv_name, prefix, suf
         lvs = list_item["lv"]
         volume_group = list_item["vg"][0]
 
-        if check_space_for_snapshots(volume_group, lvs, lv_name, required_space_available_percent):
+        if check_space_for_snapshots(volume_group, lvs, lv_name, required_space):
             return SnapshotStatus.ERROR_INSUFFICENT_SPACE, "Insufficent space to for snapshots"
 
     if not check_only:
@@ -292,7 +292,7 @@ def snapshot_lvs(required_space_available_percent, vg_name, lv_name, prefix, suf
                     continue
 
                 lv_size = int(lv["lv_size"])
-                snap_size = round_up(math.ceil(percentof(required_space_available_percent, lv_size)), 512)
+                snap_size = round_up(math.ceil(percentof(required_space, lv_size)), 512)
                 rc, message = snapshot_lv(list_item["vg"][0]["vg_name"], lv["lv_name"], prefix, suffix, snap_size)
 
                 # TODO: Should the exiting snapshot be removed and be updated?
@@ -343,7 +343,7 @@ def snapshot_cleanup(volume_group, logical_volume, prefix, suffix):
 
 
 def snapshot_cmd(args):
-    print("snapshot_cmd: ", args.operation, args.required_space_available_percent, args.volume_group, args.logical_volume, args.prefix,args.suffix)
+    print("snapshot_cmd: ", args.operation, args.required_space, args.volume_group, args.logical_volume, args.prefix,args.suffix)
     rc = SnapshotStatus.SNAPSHOT_OK
     message = ""
     if args.all and args.volume_group:
@@ -355,11 +355,11 @@ def snapshot_cmd(args):
         exit(1)
 
     if args.all:
-        rc, message = snapshot_lvs(args.required_space_available_percent, None, None, args.prefix,args.suffix, False)
+        rc, message = snapshot_lvs(args.required_space, None, None, args.prefix,args.suffix, False)
     elif args.volume_group and args.logical_volume is None:
-        rc, message = snapshot_lvs(args.required_space_available_percent, args.volume_group, None, args.prefix,args.suffix, False)
+        rc, message = snapshot_lvs(args.required_space, args.volume_group, None, args.prefix,args.suffix, False)
     else:
-        rc, message = snapshot_lvs(args.required_space_available_percent, args.volume_group, args.logical_volume, args.prefix, args.suffix, False)
+        rc, message = snapshot_lvs(args.required_space, args.volume_group, args.logical_volume, args.prefix, args.suffix, False)
     return rc, message
 
 def check_cmd(args):
@@ -373,11 +373,11 @@ def check_cmd(args):
         exit(1)
 
     if args.all:
-        rc, message = snapshot_lvs(args.required_space_available_percent, None, None, args.prefix,args.suffix, True)
+        rc, message = snapshot_lvs(args.required_space, None, None, args.prefix,args.suffix, True)
     elif args.volume_group and args.logical_volume is None:
-        rc, message = snapshot_lvs(args.required_space_available_percent, args.volume_group, None, args.prefix,args.suffix, True)
+        rc, message = snapshot_lvs(args.required_space, args.volume_group, None, args.prefix,args.suffix, True)
     else:
-        rc, message = snapshot_lvs(args.required_space_available_percent, args.volume_group, args.logical_volume, args.prefix, args.suffix, True)
+        rc, message = snapshot_lvs(args.required_space, args.volume_group, args.logical_volume, args.prefix, args.suffix, True)
     return rc, message
 
 def clean_cmd(args):
@@ -407,30 +407,32 @@ if __name__ == "__main__":
     snapshot_parser.add_argument('-a', '--all', action='store_true', default=False, dest='all',help='snapshot all VGs and LVs')
     snapshot_parser.add_argument('-vg', '--volumegroup', action='store', default = None, dest='volume_group', help='volume group to snapshot')
     snapshot_parser.add_argument('-lv', '--logicalvolume', action='store', default = None, dest='logical_volume', help='logical volume to snapshot')
-    snapshot_parser.add_argument('-r', '--percentavailable', dest='required_space_available_percent', required=False, type=int, choices=range(10,100), 
+    # TODO: range check required space - setting choices to a range makes the help ugly.
+    snapshot_parser.add_argument('-r', '--requiredspace', dest='required_space', required=False, type=int,   # choices=range(10,100)
                                 default = 20, help='percent of required space in the volume group to be reserved for snapshot')
     snapshot_parser.add_argument('-s', '--suffix', dest='suffix', type=str,  help='suffix to add to volume name for snapshot')
     snapshot_parser.add_argument('-p', '--prefix', dest='prefix', type=str,  help='prefix to add to volume name for snapshot')
 
     # sub-parser for 'check'
     check_parser = subparsers.add_parser('check', help='Check space for given VG/LV')
-    check_parser.add_argument('-a', '--all', action='store_true', default=False, dest='all',help='snapshot all VGs and LVs')
+    check_parser.add_argument('-a', '--all', action='store_true', default=False, dest='all',help='check all VGs and LVs')
     check_parser.add_argument('-vg', '--volumegroup', action='store', default = None, dest='volume_group', help='volume group to check')
-    check_parser.add_argument('-lv', '--logicalvolume', action='store', default = None, dest='logical_volume', help='logical volume to snapshot')
-    check_parser.add_argument('-r', '--percentavailable', dest='required_space_available_percent',  required=False, type=int, choices=range(10,100), 
-                                help='percent of required space in the volume group to be reserved for snapshot')
-    check_parser.add_argument('-s', '--suffix', dest='suffix', type=str,  help='suffix to add to volume name for snapshot')
-    check_parser.add_argument('-p', '--prefix', dest='prefix', type=str,  help='prefix to add to volume name for snapshot')
+    check_parser.add_argument('-lv', '--logicalvolume', action='store', default = None, dest='logical_volume', help='logical volume to check')
+    # TODO: range check required space - setting choices to a range makes the help ugly.
+    check_parser.add_argument('-r', '--requiredspace', dest='required_space',  required=False, type=int, # choices=range(10,100), 
+                                help='percent of required space in the volume group to be reserved for check')
+    check_parser.add_argument('-s', '--suffix', dest='suffix', type=str,  help='suffix to add to volume name for check - will verify no name conflicts')
+    check_parser.add_argument('-p', '--prefix', dest='prefix', type=str,  help='prefix to add to volume name for check - will verify no name conflicts')
     check_parser.set_defaults(func=check_cmd)
     
 
     # sub-parser for 'clean'
     clean_parser = subparsers.add_parser('clean', help='Cleanup snapshots')
-    clean_parser.add_argument('-a', '--all', action='store_true', default=False, dest='all',help='snapshot all VGs and LVs')
-    clean_parser.add_argument('-vg', '--volumegroup', action='store', default = None, dest='volume_group', help='volume group to check')
-    clean_parser.add_argument('-lv', '--logicalvolume', action='store', default = None, dest='logical_volume', help='logical volume to remove')
-    clean_parser.add_argument('-s', '--suffix', dest='suffix', type=str,  help='suffix to add to volume name for removal')
-    clean_parser.add_argument('-p', '--prefix', dest='prefix', type=str,  help='prefix to add to volume name for removal')
+    clean_parser.add_argument('-a', '--all', action='store_true', default=False, dest='all',help='clean all VGs and LVs')
+    clean_parser.add_argument('-vg', '--volumegroup', action='store', default = None, dest='volume_group', help='volume group to cleanup/remove')
+    clean_parser.add_argument('-lv', '--logicalvolume', action='store', default = None, dest='logical_volume', help='logical volume to cleanup/remove')
+    clean_parser.add_argument('-s', '--suffix', dest='suffix', type=str,  help='suffix to add to volume name for cleanup/remove')
+    clean_parser.add_argument('-p', '--prefix', dest='prefix', type=str,  help='prefix to add to volume name for cleanup/remove')
     clean_parser.set_defaults(func=clean_cmd)
   
 
